@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Logs and local data
+logs/
+*.log
+settings.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test outputs
+test_data*/
+test_tmp/
+test_excel/
+demo_tmp/
+screenshot*.png
