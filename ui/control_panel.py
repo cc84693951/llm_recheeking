@@ -99,6 +99,11 @@ class ControlPanel(QWidget):
         self.spin_pres_penalty.setSingleStep(0.1)
         self.spin_pres_penalty.setValue(0.0)
         param_form.addRow("Presence Penalty", self.spin_pres_penalty)
+        self.chk_stream = QCheckBox("流式响应 (Stream)")
+        self.chk_stream.setChecked(True)
+        self.chk_stream.setToolTip("开启后使用流式请求，推荐推理模型开启")
+        param_form.addRow(self.chk_stream)
+
         param_group.setLayout(param_form)
         layout.addWidget(param_group)
 
@@ -201,6 +206,12 @@ class ControlPanel(QWidget):
             "frequency_penalty": self.spin_freq_penalty.value(),
             "presence_penalty": self.spin_pres_penalty.value(),
         }
+
+    def get_stream(self):
+        return self.chk_stream.isChecked()
+
+    def set_stream(self, enabled):
+        self.chk_stream.setChecked(enabled)
 
     def set_params(self, params):
         self.spin_temperature.setValue(params.get("temperature", 0.7))

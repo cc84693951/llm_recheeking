@@ -177,6 +177,8 @@ class ImageCanvas(QGraphicsView):
         self._draw_start = None
         self._draw_rect_item = None
         self._mode = "browse"   # browse | draw
+        self._panning = False
+        self._pan_start = None
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self._on_context_menu)
 
@@ -205,8 +207,13 @@ class ImageCanvas(QGraphicsView):
             self._pixmap_item = QGraphicsPixmapItem(pixmap)
             self._pixmap_item.setZValue(-1)
             self.scene.addItem(self._pixmap_item)
-            self.scene.setSceneRect(0, 0, pixmap.width(), pixmap.height())
-            self.fitInView(self.scene.sceneRect(), Qt.KeepAspectRatio)
+            # 场景区域留出边距，使缩小后也能平移
+            margin = max(pixmap.width(), pixmap.height()) * 0.5
+            self.scene.setSceneRect(
+                -margin, -margin,
+                pixmap.width() + margin * 2, pixmap.height() + margin * 2
+            )
+            self.fitInView(self._pixmap_item.boundingRect(), Qt.KeepAspectRatio)
             self._sync_items()
 
     def _sync_items(self):
@@ -244,6 +251,13 @@ class ImageCanvas(QGraphicsView):
         self.mode_changed.emit(mode)
 
     def mousePressEvent(self, event):
+        # 中键拖拽平移（任何模式、任何缩放级别）
+        if event.button() == Qt.MiddleButton:
+            self._panning = True
+            self._pan_start = event.pos()
+            self.setCursor(QCursor(Qt.ClosedHandCursor))
+            event.accept()
+            return
         if event.button() == Qt.LeftButton and self._img_manager and self._mode == "draw":
             item = self.itemAt(event.pos())
             if item is None or item == self._pixmap_item:
@@ -259,6 +273,17 @@ class ImageCanvas(QGraphicsView):
         super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
+        if self._panning and self._pan_start is not None:
+            delta = event.pos() - self._pan_start
+            self._pan_start = event.pos()
+            self.horizontalScrollBar().setValue(
+                self.horizontalScrollBar().value() - delta.x()
+            )
+            self.verticalScrollBar().setValue(
+                self.verticalScrollBar().value() - delta.y()
+            )
+            event.accept()
+            return
         if self._drawing and self._draw_rect_item:
             pos = self.mapToScene(event.pos())
             x = min(self._draw_start.x(), pos.x())
@@ -270,6 +295,16 @@ class ImageCanvas(QGraphicsView):
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
+        if event.button() == Qt.MiddleButton and self._panning:
+            self._panning = False
+            self._pan_start = None
+            # 恢复当前模式对应的光标
+            if self._mode == "draw":
+                self.setCursor(QCursor(Qt.CrossCursor))
+            else:
+                self.setCursor(QCursor(Qt.ArrowCursor))
+            event.accept()
+            return
         if self._drawing and self._draw_rect_item:
             r = self._draw_rect_item.rect()
             self.scene.removeItem(self._draw_rect_item)

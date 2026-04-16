@@ -7,6 +7,9 @@ class SettingsManager:
     def __init__(self, path=CONFIG_PATH):
         self.path = path
         self._data = self._load()
+        # 首次启动时立即生成配置文件
+        if not os.path.exists(self.path):
+            self.save()
 
     def _load(self):
         if os.path.exists(self.path):

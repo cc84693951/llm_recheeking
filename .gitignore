@@ -17,6 +17,7 @@ build/
 logs/
 *.log
 settings.json
+models_cache.json
 
 # OS
 .DS_Store
@@ -28,3 +29,6 @@ test_tmp/
 test_excel/
 demo_tmp/
 screenshot*.png
+
+CLAUDE.md
+.claude

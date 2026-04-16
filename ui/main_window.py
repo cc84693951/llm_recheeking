@@ -131,6 +131,7 @@ class MainWindow(QMainWindow):
         self.canvas.request_label_input.connect(self._on_request_label_input)
         self.canvas.bbox_changed.connect(self._refresh_label_list)
         self.canvas.bbox_added.connect(self._refresh_label_list)
+
         self.canvas.mode_changed.connect(self._on_canvas_mode_changed)
 
         # 右侧：控制面板 + Label 过滤
@@ -225,12 +226,27 @@ class MainWindow(QMainWindow):
         img_menu.addAction(act_resize)
         img_menu.addAction(act_reset)
 
+    def _sync_model_selector_config(self):
+        """将当前 settings 中的 API 配置同步到 ModelSelector"""
+        api_mode = self.settings.get("api_mode", "cloud")
+        if api_mode == "cloud":
+            base_url = self.settings.get("cloud_base_url", "")
+            api_key = self.settings.get("cloud_api_key", "")
+        else:
+            base_url = self.settings.get("local_base_url", "")
+            api_key = self.settings.get("local_api_key", "")
+        self.control.model_selector.set_api_config(api_mode, base_url, api_key)
+
     def _load_settings(self):
         self.control.set_prompts(
             self.settings.get("system_prompt", ""),
             self.settings.get("user_prompt", ""),
         )
         self.control.set_params(self.settings.get("model_params", {}))
+        self.control.set_stream(self.settings.get("stream", True))
+        self._sync_model_selector_config()
+        self.control.model_selector.set_current_text(self.settings.get("selected_model", ""))
+        self.control.model_selector.load_cached_models()
         self.control.model_selector.set_current_text(self.settings.get("selected_model", ""))
 
     def _save_current_settings(self):
@@ -238,6 +254,7 @@ class MainWindow(QMainWindow):
         self.settings.set("system_prompt", sys_p)
         self.settings.set("user_prompt", usr_p)
         self.settings.set("model_params", self.control.get_params())
+        self.settings.set("stream", self.control.get_stream())
         self.settings.set("selected_model", self.control.model_selector.current_text())
         self.settings.save()
 
@@ -434,7 +451,9 @@ class MainWindow(QMainWindow):
     def _on_settings(self):
         dlg = SettingsDialog(self.settings, self)
         if dlg.exec_() == QDialog.Accepted:
-            pass
+            # 设置保存后同步 API 配置并刷新模型列表
+            self._sync_model_selector_config()
+            self.control.model_selector.refresh_models()
 
     def _on_preview_system_md(self):
         from ui.markdown_dialog import MarkdownDialog
@@ -889,6 +908,8 @@ class MainWindow(QMainWindow):
         if not model:
             QMessageBox.warning(self, "提示", "请选择模型")
             return
+        # 记住自定义输入的模型名
+        self.control.model_selector.remember_current_model()
 
         scope = self.control.get_inspect_scope()
         expand = self.control.get_expand_settings()
@@ -953,7 +974,8 @@ class MainWindow(QMainWindow):
         few_shots = self.settings.get("few_shots", [])
 
         self.progress_dlg = ProgressDialog(self)
-        self.engine = InspectionEngine(tasks, client, sys_p, usr_p, few_shots, params)
+        stream = self.control.get_stream()
+        self.engine = InspectionEngine(tasks, client, sys_p, usr_p, few_shots, params, stream=stream)
         self.engine.progress.connect(self.progress_dlg.set_progress)
         self.engine.result.connect(self._on_inspect_result)
         self.engine.finished_signal.connect(self._on_inspect_finished)

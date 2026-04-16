@@ -18,7 +18,7 @@ class InspectionEngine(QThread):
     finished_signal = pyqtSignal()
     error = pyqtSignal(str)
 
-    def __init__(self, tasks, client, system_prompt, user_prompt, few_shots, params, max_workers=3):
+    def __init__(self, tasks, client, system_prompt, user_prompt, few_shots, params, max_workers=3, stream=True):
         super().__init__()
         self.tasks = tasks
         self.client = client
@@ -27,6 +27,7 @@ class InspectionEngine(QThread):
         self.few_shots = few_shots
         self.params = params
         self.max_workers = max_workers
+        self.stream = stream
         self._running = True
 
     def run(self):
@@ -55,6 +56,7 @@ class InspectionEngine(QThread):
                     self.user_prompt,
                     self.few_shots,
                     self.params,
+                    stream=self.stream,
                 )
                 return task.file_index, i, text.strip()
 
