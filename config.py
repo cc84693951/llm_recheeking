@@ -15,8 +15,8 @@ DEFAULT_FEW_SHOTS = []
 SUPPORTED_IMAGE_EXTENSIONS = (".png", ".jpg", ".jpeg", ".bmp", ".gif", ".tiff", ".webp")
 
 DEFAULT_MODEL_PARAMS = {
-    "temperature": 0.7,
-    "top_p": 0.9,
+    "temperature": 0.3,
+    "top_p": 0.8,
     "max_tokens": 512,
     "frequency_penalty": 0.0,
     "presence_penalty": 0.0,
